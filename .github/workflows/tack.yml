@@ -72,12 +72,55 @@ jobs:
 
   matrix:
     name: "Discover hosts"
-    uses: $/.github/workflows/matrix.yml
-    needs: update
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     permissions:
       actions: read
-    secrets:
-      BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+
+    outputs:
+      hosts: ${{ steps.generate.outputs.hosts }}
+
+    steps:
+    - name: "Checkout repository"
+      id: checkout
+      background: true
+      uses: actions/checkout@v7.0.1
+
+    - name: "Get secrets"
+      uses: bitwarden/sm-action@v3.0.1
+      with:
+        access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+        secrets: |
+          ec6c99d6-ceb6-4954-b487-b4e50156014e > NIVOLOGY_SECRETS_RO
+
+    - name: "Install Nix"
+      uses: cachix/install-nix-action@31.11.3
+      with:
+        github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
+        extra_nix_config: |
+          keep-going = true
+          cores = 0
+
+    - name: "Set up Hestia"
+      uses: Mic92/hestia@v3.1.0
+      with:
+        filter-drv-closures: true
+        upstream-cache-filter: true
+        upstream-cache-key-names: >
+          cache.nixos.org-1
+          misterkartoffel.cachix.org-1
+
+    - name: "Wait for checkout"
+      wait: checkout
+
+    - name: "Generate matrix"
+      id: generate
+      working-directory: ./ci
+      run: |
+        MATRIX=$(nix eval --json --file matrix.nix)
+        jq -r ".[].drvPath" <<< "${MATRIX}" | xargs "${HESTIA_BIN}" hook --socket "${HESTIA_SOCKET}"
+        echo "hosts=${MATRIX}" >> "${GITHUB_OUTPUT}"
 
   diffs:
     name: "Diff ${{ matrix.name }}"
