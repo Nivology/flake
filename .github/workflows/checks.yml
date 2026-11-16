@@ -4,12 +4,15 @@ name: "Checks"
 on:
   pull_request:
   workflow_call:
+    inputs:
+      FORCE:
+        description: "Force all checks"
+        type: boolean
+        required: false
+        default: false
     outputs:
       flake:
         value: ${{ jobs.eval.outputs.flake }}
-
-env:
-  DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
 
 permissions: {}
 
@@ -23,20 +26,16 @@ jobs:
       pull-requests: read
 
     outputs:
-      flake: >-
-        ${{ env.DISPATCH == 'true' && 'true' ||
-        steps.filter.outputs.flake }}
-      workflows: >-
-        ${{ env.DISPATCH == 'true' && 'true' ||
-        steps.filter.outputs.workflows }}
+      flake: ${{ steps.filter.outputs.flake || inputs.FORCE }}
+      workflows: ${{ steps.filter.outputs.workflows || inputs.FORCE }}
 
     steps:
     - name: "Checkout repository"
-      if: env.DISPATCH != 'true'
+      if: ${{ !inputs.FORCE || true }}
       uses: actions/checkout@v7.0.1
 
     - name: "Filter paths"
-      if: env.DISPATCH != 'true'
+      if: ${{ !inputs.FORCE || true }}
       id: filter
       uses: dorny/paths-filter@v4.0.3
       with:

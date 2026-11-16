@@ -5,9 +5,12 @@ run-name: "${{ github.workflow }}: ${{ github.ref_name }} (#${{ github.run_numbe
 on:
   merge_group:
   workflow_dispatch:
-
-env:
-  DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
+    inputs:
+      FORCE:
+        description: "Force build all outputs"
+        type: boolean
+        required: true
+        default: true
 
 permissions: {}
 
@@ -17,8 +20,10 @@ concurrency:
 
 jobs:
   checks:
-    name: "Required checks"
+    name: "Checks"
     uses: $/.github/workflows/checks.yml
+    with:
+      FORCE: ${{ inputs.FORCE || false }}
     permissions:
       pull-requests: read
 
@@ -27,22 +32,34 @@ jobs:
     if: needs.checks.outputs.flake == 'true'
     needs: checks
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
     outputs:
-      hosts: >-
-        ${{ env.DISPATCH == 'true' && 'true' ||
-        steps.filter.outputs.hosts }}
-      matrix: ${{ steps.generate.outputs.matrix }}
+      hosts: ${{ steps.hosts.outputs.matrix || '[]' }}
+      derivations: ${{ steps.derivations.outputs.matrix || '[]' }}
 
     steps:
     - name: "Checkout repository"
-      if: env.DISPATCH != 'true'
+      id: checkout
+      background: true
       uses: actions/checkout@v7.0.1
 
+    - name: "Get secrets"
+      id: secrets
+      background: true
+      uses: bitwarden/sm-action@v3.0.1
+      with:
+        access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+        secrets: |
+          ec6c99d6-ceb6-4954-b487-b4e50156014e > NIVOLOGY_SECRETS_RO
+
+    - name: "Wait for checkout"
+      wait: checkout
+
     - name: "Filter paths"
-      if: env.DISPATCH != 'true'
+      if: ${{ !inputs.FORCE }}
       id: filter
+      background: true
       uses: dorny/paths-filter@v4.0.3
       with:
         filters: |
@@ -66,39 +83,63 @@ jobs:
           - 'modules/**'
           - 'users/**'
 
-    - name: "Derivation matrix"
-      id: generate
+    - name: "Wait for secrets"
+      wait: secrets
+
+    - name: "Install Nix"
+      id: nix
+      background: true
+      uses: cachix/install-nix-action@v31.11.3
+      with:
+        github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
+
+    - name: "Wait for filters"
+      wait: filter
+
+    - name: "Derivations matrix"
+      id: derivations
       env:
         FILTERS: ${{ toJSON(steps.filter.outputs) }}
+        FORCE: ${{ inputs.FORCE || false }}
       run: |
         MATRIX=$(jq --null-input --compact-output \
-          --argjson filters "${FILTERS}" --argjson dispatch "${DISPATCH}" '
+          --argjson filters "${FILTERS}" --argjson force "${FORCE}" '
           [ ("x86_64-linux", "aarch64-linux") as $system
           | ("devShells", "packages") as $output
-          | select($dispatch or $filters[$output] == "true")
+          | select($force or $filters[$output] == "true")
           | {$output, $system} ]
         ')
 
         echo "matrix=${MATRIX}" >> "${GITHUB_OUTPUT}"
 
-  matrix:
-    name: "Discover hosts"
-    if: needs.eval.outputs.hosts == 'true'
-    needs:
-    - checks
-    - eval
-    uses: $/.github/workflows/matrix.yml
-    permissions:
-      actions: read
-    secrets:
-      BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+    - name: "Wait for Nix"
+      wait: nix
+
+    - name: "Set up Hestia"
+      if: steps.filter.outputs.hosts == 'true' || inputs.FORCE
+      uses: Mic92/hestia@v3.1.0
+      with:
+        filter-drv-closures: true
+        upstream-cache-filter: true
+        upstream-cache-key-names: >
+          cache.nixos.org-1
+          misterkartoffel.cachix.org-1
+
+    - name: "Hosts matrix"
+      if: steps.filter.outputs.hosts == 'true' || inputs.FORCE
+      id: hosts
+      working-directory: ./ci
+      run: |
+        MATRIX=$(nix eval --json --file matrix.nix)
+        jq -r ".[].drvPath" <<< "${MATRIX}" | xargs "${HESTIA_BIN}" hook --socket "${HESTIA_SOCKET}"
+        echo "matrix=${MATRIX}" >> "${GITHUB_OUTPUT}"
 
   hosts:
     name: "${{ matrix.name }} (${{ matrix.system }})"
-    if: needs.matrix.outputs.hosts != '[]'
+    if: needs.eval.outputs.hosts != '[]'
     needs:
     - checks
-    - matrix
+    - eval
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
 
@@ -108,11 +149,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.matrix.outputs.hosts) }}
+        include: ${{ fromJSON(needs.eval.outputs.hosts) }}
 
     steps:
     - name: "Get secrets"
-      id: secrets
       uses: bitwarden/sm-action@v3.0.1
       with:
         access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
@@ -120,17 +160,13 @@ jobs:
           ad184127-0d3f-4115-8801-b4e501565b66 > CACHIX_AUTH_TOKEN
           ec6c99d6-ceb6-4954-b487-b4e50156014e > NIVOLOGY_SECRETS_RO
 
-    - parallel:
-      - name: "Checkout repository"
-        uses: actions/checkout@v7.0.1
-
-      - name: "Install Nix"
-        uses: cachix/install-nix-action@v31.11.3
-        with:
-          github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
-          extra_nix_config: |
-            keep-going = true
-            cores = 0
+    - name: "Install Nix"
+      uses: cachix/install-nix-action@v31.11.3
+      with:
+        github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
+        extra_nix_config: |
+          keep-going = true
+          cores = 0
 
     - name: "Set up Hestia"
       uses: Mic92/hestia@v3.1.0
@@ -161,7 +197,7 @@ jobs:
 
   derivations:
     name: "${{ matrix.output }} (${{ matrix.system }})"
-    if: needs.eval.outputs.matrix != '[]'
+    if: needs.eval.outputs.derivations != '[]'
     needs:
     - checks
     - eval
@@ -176,33 +212,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.eval.outputs.matrix) }}
+        include: ${{ fromJSON(needs.eval.outputs.derivations) }}
 
     steps:
-    - name: "Get secrets"
-      if: github.event_name != 'pull_request'
-      id: secrets
-      uses: bitwarden/sm-action@v3.0.1
-      with:
-        access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
-        secrets: |
-          ad184127-0d3f-4115-8801-b4e501565b66 > CACHIX_AUTH_TOKEN
-
     - parallel:
       - name: "Checkout repository"
         uses: actions/checkout@v7.0.1
 
-      - name: "Install Nix"
-        uses: cachix/install-nix-action@v31.11.3
+      - name: "Get secrets"
+        uses: bitwarden/sm-action@v3.0.1
         with:
-          extra_nix_config: |
-            keep-going = true
-            cores = 0
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          secrets: |
+            ad184127-0d3f-4115-8801-b4e501565b66 > CACHIX_AUTH_TOKEN
+
+    - name: "Install Nix"
+      uses: cachix/install-nix-action@v31.11.3
+      with:
+        extra_nix_config: |
+          keep-going = true
+          cores = 0
 
     - name: "Set up Hestia"
       uses: Mic92/hestia@v3.1.0
       with:
-        read-only: ${{ github.event_name == 'pull_request' }}
         upstream-cache-filter: true
         upstream-cache-key-names: >
           cache.nixos.org-1
@@ -220,7 +253,6 @@ jobs:
     needs:
     - checks
     - eval
-    - matrix
     - hosts
     - derivations
     if: always()

@@ -28,12 +28,8 @@ jobs:
       actions: write
 
     steps:
-    - parallel:
-      - name: "Checkout repository"
-        uses: actions/checkout@v7.0.1
-
-      - name: "Install Nix"
-        uses: cachix/install-nix-action@31.11.3
+    - name: "Install Nix"
+      uses: cachix/install-nix-action@31.11.3
 
     - name: "Set up Hestia"
       uses: Mic92/hestia@v3.1.0
