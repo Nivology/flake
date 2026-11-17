@@ -42,7 +42,7 @@ jobs:
             .tack
 
       - name: "Install Nix"
-        uses: cachix/install-nix-action@31.11.3
+        uses: cachix/install-nix-action@v31.11.5
         with:
           github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
           extra_nix_config: |
@@ -95,7 +95,7 @@ jobs:
           ec6c99d6-ceb6-4954-b487-b4e50156014e > NIVOLOGY_SECRETS_RO
 
     - name: "Install Nix"
-      uses: cachix/install-nix-action@31.11.3
+      uses: cachix/install-nix-action@v31.11.5
       with:
         github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
         extra_nix_config: |
