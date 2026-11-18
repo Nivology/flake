@@ -1,5 +1,9 @@
+<div align=center>
+
 # MisterKartoffel's Nix Flake
+![Merge Queue](https://img.shields.io/github/actions/workflow/status/Nivology/flake/flake.yml?style=for-the-badge&logo=nixos&label=Builds&labelColor=%2324273a&color=%23a6da95) ![Update Inputs](https://img.shields.io/github/actions/workflow/status/Nivology/flake/tack.yml?style=for-the-badge&logo=nixos&label=Updates&labelColor=%2324273a&color=%23a6da95)
 ![it_aint_much](.github/assets/it_aint_much.jpg)
+</div>
 
 ## Directory Structure Reference
 ```
