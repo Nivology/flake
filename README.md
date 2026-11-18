@@ -1,8 +1,9 @@
 <div align=center>
 
 # MisterKartoffel's Nix Flake
+![NixOS Logo](.github/assets/nixos_logo_purple.png)
+
 ![Merge Queue](https://img.shields.io/github/actions/workflow/status/Nivology/flake/flake.yml?style=for-the-badge&logo=nixos&label=Builds&labelColor=%2324273a&color=%23a6da95) ![Update Inputs](https://img.shields.io/github/actions/workflow/status/Nivology/flake/tack.yml?style=for-the-badge&logo=nixos&label=Updates&labelColor=%2324273a&color=%23a6da95)
-![it_aint_much](.github/assets/it_aint_much.jpg)
 </div>
 
 ## Directory Structure Reference
@@ -54,3 +55,7 @@ flake/
 - [Bvngee](https://github.com/bvngee) and [Soi](https://github.com/soulsoiledit), for being a part of TMC and indirectly exposing me to their Nix flakes.
 - [EmergentMind](https://github.com/EmergentMind), for being a great reference both on YouTube and on GitHub when it comes to learning Nix and for showing the configuration structure from which I ultimately stole.
 - The [niri & DMS](https://discord.gg/vT8Sfjy7sx) and [Ghostty](https://discord.gg/ghostty) Discord servers for many references.
+
+<div align=center>
+![it_aint_much](.github/assets/it_aint_much.jpg)
+</div>
