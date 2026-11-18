@@ -3,16 +3,6 @@ name: "Checks"
 
 on:
   pull_request:
-  workflow_call:
-    inputs:
-      FORCE:
-        description: "Force all checks"
-        type: boolean
-        required: false
-        default: false
-    outputs:
-      flake:
-        value: ${{ jobs.eval.outputs.flake }}
 
 permissions: {}
 
@@ -26,16 +16,14 @@ jobs:
       pull-requests: read
 
     outputs:
-      flake: ${{ steps.filter.outputs.flake || inputs.FORCE }}
-      workflows: ${{ steps.filter.outputs.workflows || inputs.FORCE }}
+      flake: ${{ steps.filter.outputs.flake }}
+      workflows: ${{ steps.filter.outputs.workflows }}
 
     steps:
     - name: "Checkout repository"
-      if: ${{ !inputs.FORCE || true }}
       uses: actions/checkout@v7.0.1
 
     - name: "Filter paths"
-      if: ${{ !inputs.FORCE || true }}
       id: filter
       uses: dorny/paths-filter@v4.0.3
       with:
@@ -118,7 +106,7 @@ jobs:
       uses: kjanat/actionlint@v1.17.1
 
   sentinel:
-    name: "Gate required checks"
+    name: "No failures"
     needs:
     - check
     - eval
