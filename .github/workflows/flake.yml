@@ -1,5 +1,5 @@
 ---
-name: "Build Outputs"
+name: "Merge Queue"
 run-name: "${{ github.workflow }}: ${{ github.ref_name }} (#${{ github.run_number }}-${{ github.run_attempt }})"
 
 on:
@@ -19,47 +19,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  checks:
-    name: "Checks"
-    uses: $/.github/workflows/checks.yml
-    with:
-      FORCE: ${{ inputs.FORCE || false }}
+  eval:
+    name: "Evaluate required rebuilds"
+    if: ${{ !inputs.FORCE }}
+    runs-on: ubuntu-slim
+    timeout-minutes: 1
+
     permissions:
       pull-requests: read
 
-  eval:
-    name: "Evaluate required rebuilds"
-    if: needs.checks.outputs.flake == 'true'
-    needs: checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     outputs:
-      hosts: ${{ steps.hosts.outputs.matrix || '[]' }}
-      derivations: ${{ steps.derivations.outputs.matrix || '[]' }}
+      changes: ${{ steps.filter.outputs.changes }}
+      packages: ${{ steps.filter.outputs.packages }}
+      devShells: ${{ steps.filter.outputs.devShells }}
+      hosts: ${{ steps.filter.outputs.hosts }}
 
     steps:
     - name: "Checkout repository"
-      id: checkout
-      background: true
       uses: actions/checkout@v7.0.1
 
-    - name: "Get secrets"
-      id: secrets
-      background: true
-      uses: bitwarden/sm-action@v3.0.1
-      with:
-        access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
-        secrets: |
-          ec6c99d6-ceb6-4954-b487-b4e50156014e > NIVOLOGY_SECRETS_RO
-
-    - name: "Wait for checkout"
-      wait: checkout
-
     - name: "Filter paths"
-      if: ${{ !inputs.FORCE }}
       id: filter
-      background: true
       uses: dorny/paths-filter@v4.0.3
       with:
         filters: |
@@ -83,23 +63,42 @@ jobs:
           - 'modules/**'
           - 'users/**'
 
-    - name: "Wait for secrets"
-      wait: secrets
+  matrices:
+    name: "Generate job matrices"
+    if: needs.eval.outputs.changes != '[]' || inputs.FORCE
+    needs: eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    outputs:
+      hosts: ${{ steps.hosts.outputs.matrix || '[]' }}
+      derivations: ${{ steps.derivations.outputs.matrix || '[]' }}
+
+    steps:
+    - parallel:
+      - name: "Checkout repository"
+        uses: actions/checkout@v7.0.1
+
+      - name: "Get secrets"
+        uses: bitwarden/sm-action@v3.0.1
+        with:
+          access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
+          secrets: |
+            ec6c99d6-ceb6-4954-b487-b4e50156014e > NIVOLOGY_SECRETS_RO
 
     - name: "Install Nix"
+      if: needs.eval.outputs.hosts == 'true' || inputs.FORCE
       id: nix
       background: true
       uses: cachix/install-nix-action@v31.11.3
       with:
         github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
 
-    - name: "Wait for filters"
-      wait: filter
-
     - name: "Derivations matrix"
       id: derivations
+      background: true
       env:
-        FILTERS: ${{ toJSON(steps.filter.outputs) }}
+        FILTERS: ${{ toJSON(needs.eval.outputs) }}
         FORCE: ${{ inputs.FORCE || false }}
       run: |
         MATRIX=$(jq --null-input --compact-output \
@@ -116,7 +115,9 @@ jobs:
       wait: nix
 
     - name: "Set up Hestia"
-      if: steps.filter.outputs.hosts == 'true' || inputs.FORCE
+      if: steps.nix.outcome == 'success'
+      id: hestia
+      continue-on-error: true
       uses: Mic92/hestia@v3.1.0
       with:
         filter-drv-closures: true
@@ -126,20 +127,24 @@ jobs:
           misterkartoffel.cachix.org-1
 
     - name: "Hosts matrix"
-      if: steps.filter.outputs.hosts == 'true' || inputs.FORCE
+      if: steps.nix.outcome == 'success'
       id: hosts
+      env:
+        CACHE: ${{ steps.hestia.outcome == 'success' }}
       working-directory: ./ci
       run: |
         MATRIX=$(nix eval --json --file matrix.nix)
-        jq -r ".[].drvPath" <<< "${MATRIX}" | xargs "${HESTIA_BIN}" hook --socket "${HESTIA_SOCKET}"
+
+        if "${CACHE}"; then
+          jq -r ".[].drvPath" <<< "${MATRIX}" | xargs "${HESTIA_BIN}" hook --socket "${HESTIA_SOCKET}"
+        fi
+
         echo "matrix=${MATRIX}" >> "${GITHUB_OUTPUT}"
 
   hosts:
     name: "${{ matrix.name }} (${{ matrix.system }})"
-    if: needs.eval.outputs.hosts != '[]'
-    needs:
-    - checks
-    - eval
+    if: needs.matrices.outputs.hosts != '[]'
+    needs: matrices
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
 
@@ -149,7 +154,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.eval.outputs.hosts) }}
+        include: ${{ fromJSON(needs.matrices.outputs.hosts) }}
 
     steps:
     - name: "Get secrets"
@@ -169,6 +174,8 @@ jobs:
           cores = 0
 
     - name: "Set up Hestia"
+      id: hestia
+      continue-on-error: true
       uses: Mic92/hestia@v3.1.0
       with:
         upstream-cache-filter: true
@@ -177,13 +184,14 @@ jobs:
           misterkartoffel.cachix.org-1
 
     - name: "Set up Cachix"
-      uses: cachix/cachix-action@v17
       continue-on-error: true
+      uses: cachix/cachix-action@v17
       with:
         name: misterkartoffel
         authToken: ${{ env.CACHIX_AUTH_TOKEN }}
 
     - name: "Prefetch derivation closure"
+      if: steps.hestia.outcome == 'success'
       env:
         DRV_PATH: ${{ matrix.drvPath }}
       run: ${HESTIA_BIN} prefetch "${DRV_PATH}"
@@ -197,10 +205,8 @@ jobs:
 
   derivations:
     name: "${{ matrix.output }} (${{ matrix.system }})"
-    if: needs.eval.outputs.derivations != '[]'
-    needs:
-    - checks
-    - eval
+    if: needs.matrices.outputs.derivations != '[]'
+    needs: matrices
     runs-on: >-
       ${{ matrix.system == 'x86_64-linux' && 'ubuntu-latest'
       || matrix.system == 'aarch64-linux' && 'ubuntu-24.04-arm' }}
@@ -212,7 +218,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.eval.outputs.derivations) }}
+        include: ${{ fromJSON(needs.matrices.outputs.derivations) }}
 
     steps:
     - parallel:
@@ -234,6 +240,7 @@ jobs:
           cores = 0
 
     - name: "Set up Hestia"
+      continue-on-error: true
       uses: Mic92/hestia@v3.1.0
       with:
         upstream-cache-filter: true
@@ -249,10 +256,9 @@ jobs:
         --flake .#${{ matrix.output }}.${{ matrix.system }}
 
   sentinel:
-    name: "Gate required checks"
+    name: "No failures"
     needs:
-    - checks
-    - eval
+    - matrices
     - hosts
     - derivations
     if: always()
