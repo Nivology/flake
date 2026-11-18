@@ -239,4 +239,6 @@ jobs:
         commit-message: "tack: update inputs"
         title: "tack: update inputs"
         body: ${{ steps.body.outputs.text }}
-        labels: CI/CD
+        labels: |
+          CI/CD
+          inputs
