@@ -14,18 +14,9 @@
 
   system.stateVersion = "26.05";
   preservation.enable = true;
-
   time.timeZone = "America/Sao_Paulo";
+  boot.zswap.enable = true;
   console.keyMap = "br-abnt2";
-
-  networking = {
-    hostName = "ghost";
-
-    useNetworkd = true;
-    nftables.enable = true;
-    wireless.iwd.enable = true;
-  };
-
   fonts.fontconfig.enable = true;
   qt.enable = true;
 
@@ -49,10 +40,6 @@
     resolved.enable = true;
     watt.enable = true;
   };
-
-  hardware.amdgpu.legacySupport.enable = true;
-  hardware.facter.reportPath = ./facter.json;
-  boot.zswap.enable = true;
 
   # Closure size optimizations
   services.speechd.enable = false;
