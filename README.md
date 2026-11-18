@@ -9,27 +9,27 @@ flake/
 │   └── <hostname>/
 │       ├── default.nix
 │       ├── disko.nix     ◄ [2]
-│       └── facter.json   ◄ [3]
+│       └── ...
 ├── users/
-│   └── <username>.nix    ◄ [4]
+│   └── <username>.nix    ◄ [3]
 ├── modules/
-│   ├── hjem/             ◄ [4]
+│   ├── hjem/             ◄ [3]
 │   └── nixos/
-│       ├── preservation/ ◄ [5]
-│       ├── sops.nix      ◄ [6]
+│       ├── preservation/ ◄ [4]
+│       ├── sops.nix      ◄ [5]
 │       └── ...
 ├── pkgs/
 │   ├── fish/
 │   ├── nushell/
 │   ├── nvim/
-│   └── zen-browser/      ◄ [7]
+│   └── zen-browser/      ◄ [6]
 ├── overlays/
 │   └── default.nix
 ├── ci/
 │   ├── matrix.nix
 │   ├── treefmt.nix
 │   └── ...
-├── default.nix           ◄ [8]
+├── default.nix           ◄ [7]
 ├── flake.nix
 ├── shell.nix
 ├── LICENSE
@@ -40,12 +40,11 @@ flake/
 ## Notable modules and dependencies
 #### [1] [manic-systems/tack](https://github.com/manic-systems/tack) - input pinning.
 #### [2] [nix-community/disko](https://github.com/nix-community/disko) - declarative disk management.
-#### [3] [nix-community/nixos-facter](https://github.com/nix-community/nixos-facter) - generated hardware configuration.
-#### [4] [feel-co/hjem](https://github.com/feel-co/hjem) - streamlined $HOME management.
-#### [5] [nix-community/preservation](https://github.com/nix-community/preservation) - state persistence.
-#### [6] [mic92/sops-nix](https://github.com/mic92/sops-nix) - declarative secret management.
-#### [7] [youwen5/zen-browser-flake](https://github.com/youwen5/zen-browser-flake) - flake for Zen Browser.
-#### [8] [NixOS/flake-compat](https://github.com/NixOS/flake-compat) - shim for flakeless consumers.
+#### [3] [feel-co/hjem](https://github.com/feel-co/hjem) - streamlined $HOME management.
+#### [4] [nix-community/preservation](https://github.com/nix-community/preservation) - state persistence.
+#### [5] [mic92/sops-nix](https://github.com/mic92/sops-nix) - declarative secret management.
+#### [6] [youwen5/zen-browser-flake](https://github.com/youwen5/zen-browser-flake) - flake for Zen Browser.
+#### [7] [NixOS/flake-compat](https://github.com/NixOS/flake-compat) - shim for flakeless consumers.
 
 ## Acknowledgments
 - [Bvngee](https://github.com/bvngee) and [Soi](https://github.com/soulsoiledit), for being a part of TMC and indirectly exposing me to their Nix flakes.
