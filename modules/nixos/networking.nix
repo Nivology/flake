@@ -1,7 +1,3 @@
-{ config, ... }:
-let
-  inherit (config.hardware.facter.detected.dhcp) interfaces;
-in
 {
   networking = {
     nameservers = [
@@ -11,7 +7,11 @@ in
     ];
 
     bonds.bond0 = {
-      inherit interfaces;
+      interfaces = [
+        "enp7s0"
+        "wlan0"
+      ];
+
       driverOptions = {
         mode = "active-backup";
         primary_reselect = "better";
