@@ -74,7 +74,7 @@
 - The [niri & DMS](https://discord.gg/vT8Sfjy7sx) and [Ghostty](https://discord.gg/ghostty) Discord servers for many references.
 
 ## Next Steps
-You can read all about what's currently planned for this flake by reading the [List of TODOs](https://github.com/Nivology/flake/issues/31).
+You can read all about what's currently planned for this flake by reading the [List of TODOs](https://github.com/orgs/Nivology/projects/2).
 
 ## Licensing
 This project is licensed under the [Zero Clause BSD](https://opensource.org/license/0bsd) license, which can be read in full on that link you just went past or in [LICENSE](/LICENSE).
