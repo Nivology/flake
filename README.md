@@ -3,7 +3,7 @@
 # MisterKartoffel's Nix Flake
 ![NixOS Logo](.github/assets/nixos_logo_purple.png)
 
-![Merge Queue](https://img.shields.io/github/actions/workflow/status/Nivology/flake/flake.yml?style=for-the-badge&logo=nixos&label=Builds&labelColor=%2324273a&color=%23a6da95) ![Update Inputs](https://img.shields.io/github/actions/workflow/status/Nivology/flake/tack.yml?style=for-the-badge&logo=nixos&label=Updates&labelColor=%2324273a&color=%23a6da95)
+[![Merge Queue](https://img.shields.io/github/actions/workflow/status/Nivology/flake/flake.yml?style=for-the-badge&logo=nixos&label=Builds&labelColor=%2324273a&color=%23a6da95)](https://github.com/Nivology/flake/actions/workflows/flake.yml) [![Update Inputs](https://img.shields.io/github/actions/workflow/status/Nivology/flake/tack.yml?style=for-the-badge&logo=nixos&label=Updates&labelColor=%2324273a&color=%23a6da95)](https://github.com/Nivology/flake/actions/workflows/tack.yml)
 </div>
 
 ## Table of Contents
