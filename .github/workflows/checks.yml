@@ -27,7 +27,6 @@ jobs:
       id: filter
       uses: dorny/paths-filter@v4.0.3
       with:
-        predicate-quantifier: some-with-excludes
         filters: |
           flake:
           - '.tack/**'
@@ -43,8 +42,7 @@ jobs:
           - 'users/**'
 
           workflows:
-          - '.github/**'
-          - '!.github/assets/**'
+          - '.github/workflows/**'
 
   formatter:
     name: "Formatter"
