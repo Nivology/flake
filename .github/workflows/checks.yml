@@ -141,7 +141,8 @@ jobs:
     - check
     - eval
     - formatter
-    - workflows
+    - actionlint
+    - zizmor
     if: always()
     runs-on: ubuntu-slim
     timeout-minutes: 1
