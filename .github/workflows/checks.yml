@@ -88,7 +88,7 @@ jobs:
     - name: "Run flake check"
       run: nix flake check --all-systems
 
-  workflows:
+  actionlint:
     name: "Actionlint"
     needs: eval
     if: needs.eval.outputs.workflows == 'true'
@@ -103,6 +103,28 @@ jobs:
 
     - name: "Actionlint"
       uses: kjanat/actionlint@v1.17.1
+
+  zizmor:
+    name: "Zizmor"
+    needs: eval
+    if: needs.eval.outputs.workflows == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      security-events: write
+
+    steps:
+    - name: "Checkout .github"
+      uses: actions/checkout@v7.0.1
+      with:
+        sparse-checkout: .github
+
+    - name: "Zizmor"
+      uses: zizmorcore/zizmor-action@v0.9.2
+      with:
+        advanced-security: false
+        annotations: true
 
   sentinel:
     name: "No failures"
