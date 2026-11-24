@@ -35,7 +35,7 @@ vim.opt.listchars = { tab = "» ", trail = "·", nbsp = "␣", extends = "›", 
 vim.opt.writebackup = false
 vim.opt.swapfile = false
 vim.opt.undofile = true
-local undodir = vim.fn.stdpath("cache") .. "/nvim/undo"
+local undodir = vim.fn.stdpath("cache") .. "/undo"
 if not vim.fn.isdirectory(undodir) then
   vim.fn.mkdir(undodir, "p")
 end
