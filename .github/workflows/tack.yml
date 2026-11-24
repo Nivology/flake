@@ -214,7 +214,6 @@ jobs:
         HOSTS: ${{ needs.matrix.outputs.hosts }}
       run: |
         {
-          echo "TEXT<<EOF"
           echo "## Input update summary"
           echo '```text'
           echo "${SUMMARY}"
@@ -228,21 +227,72 @@ jobs:
             echo "![${NAME} closure diff](${PAGE_URL}diffs/${RUN_ID}/${NAME}.svg)"
             echo "</details>"
           done < <(jq -r '.[].name' <<< "${HOSTS}")
-
-          echo "EOF"
-        } >> "${GITHUB_OUTPUT}"
+        } > "${RUNNER_TEMP}/pr-body.md"
 
     - name: "Create pull request"
-      uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1 # v8.1.3
-      with:
-        branch: tack/update-inputs
-        delete-branch: true
-        sign-commits: true
-        signoff: true
-        assignees: ${{ github.repository_owner }}
-        commit-message: "tack: update inputs"
-        title: "tack: update inputs"
-        body: ${{ steps.body.outputs.text }}
-        labels: |
-          CI/CD
-          inputs
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        BASE: ${{ github.ref_name }}
+        ASSIGNEE: ${{ github.repository_owner }}
+        TITLE: "tack: update-inputs"
+        BRANCH: tack/update-inputs
+      run: |
+        STATE=$(gh pr view "${BRANCH}" --json state --jq .state 2>/dev/null || true)
+
+        git add --all
+        BASE_SHA="$(git rev-parse HEAD)"
+        git push --force \
+          "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" \
+          "${BASE_SHA}:refs/heads/${BRANCH}"
+
+        while IFS= read -r -d '' path; do
+          base64 --wrap=0 -- "${path}" \
+            | jq --raw-input --slurp --compact-output \
+              --arg path "${path}" '{path: $path, contents: .}'
+        done < <(git diff --cached --name-only --no-renames --diff-filter=d -z) \
+          | jq --slurp --compact-output '.' > "${RUNNER_TEMP}/additions.json"
+
+        while IFS= read -r -d '' path; do
+          jq --null-input --compact-output --arg path "${path}" '{path: $path}'
+        done < <(git diff --cached --name-only --no-renames --diff-filter=D -z) \
+          | jq --slurp --compact-output '.' > "${RUNNER_TEMP}/deletions.json"
+
+        jq --null-input \
+          --arg query 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }' \
+          --arg repo "${GH_REPO}" \
+          --arg branch "${BRANCH}" \
+          --arg oid "${BASE_SHA}" \
+          --arg headline "${TITLE}" \
+          --arg trailer "Signed-off-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" \
+          --slurpfile additions "${RUNNER_TEMP}/additions.json" \
+          --slurpfile deletions "${RUNNER_TEMP}/deletions.json" \
+          '{
+            query: $query,
+            variables: {
+              input: {
+                branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                expectedHeadOid: $oid,
+                message: {headline: $headline, body: $trailer},
+                fileChanges: {additions: $additions[0], deletions: $deletions[0]}
+              }
+            }
+          }' > "${RUNNER_TEMP}/commit.json"
+
+        gh api graphql --input "${RUNNER_TEMP}/commit.json" --silent
+
+        if [[ "${STATE}" == OPEN ]]; then
+          gh pr edit "${BRANCH}" \
+            --title "${TITLE}" \
+            --body-file "${RUNNER_TEMP}/pr-body.md" \
+            --add-label "CI/CD" --add-label "inputs" \
+            --add-assignee "${ASSIGNEE}"
+        else
+          gh pr create \
+            --head "${BRANCH}" \
+            --base "${BASE}" \
+            --title "${TITLE}" \
+            --body-file "${RUNNER_TEMP}/pr-body.md" \
+            --label "CI/CD" --label "inputs" \
+            --assignee "${ASSIGNEE}"
+        fi
