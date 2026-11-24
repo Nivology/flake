@@ -36,13 +36,13 @@ jobs:
 
     steps:
     - name: "Checkout repository"
-      uses: actions/checkout@v7.0.1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
 
     - name: "Filter paths"
       id: filter
-      uses: dorny/paths-filter@v4.0.3
+      uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
       with:
         filters: |
           rebuild: &rebuild
@@ -79,12 +79,12 @@ jobs:
     steps:
     - parallel:
       - name: "Checkout repository"
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: "Get secrets"
-        uses: bitwarden/sm-action@v3.0.1
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
         with:
           access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
           secrets: |
@@ -94,7 +94,7 @@ jobs:
       if: needs.eval.outputs.hosts == 'true' || inputs.FORCE
       id: nix
       background: true
-      uses: cachix/install-nix-action@v32.0.0
+      uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
       with:
         github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
 
@@ -122,7 +122,7 @@ jobs:
       if: steps.nix.outcome == 'success'
       id: hestia
       continue-on-error: true
-      uses: Mic92/hestia@v3.1.0
+      uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
       with:
         filter-drv-closures: true
         upstream-cache-filter: true
@@ -162,7 +162,7 @@ jobs:
 
     steps:
     - name: "Get secrets"
-      uses: bitwarden/sm-action@v3.0.1
+      uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
       with:
         access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
         secrets: |
@@ -170,7 +170,7 @@ jobs:
           ec6c99d6-ceb6-4954-b487-b4e50156014e > NIVOLOGY_SECRETS_RO
 
     - name: "Install Nix"
-      uses: cachix/install-nix-action@v32.0.0
+      uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
       with:
         github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
         extra_nix_config: |
@@ -180,7 +180,7 @@ jobs:
     - name: "Set up Hestia"
       id: hestia
       continue-on-error: true
-      uses: Mic92/hestia@v3.1.0
+      uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
       with:
         upstream-cache-filter: true
         upstream-cache-key-names: >
@@ -189,7 +189,7 @@ jobs:
 
     - name: "Set up Cachix"
       continue-on-error: true
-      uses: cachix/cachix-action@v17
+      uses: cachix/cachix-action@38b082610b782e7e93e209c35fd730d399dee866 # v17
       with:
         name: misterkartoffel
         authToken: ${{ env.CACHIX_AUTH_TOKEN }}
@@ -227,19 +227,19 @@ jobs:
     steps:
     - parallel:
       - name: "Checkout repository"
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: "Get secrets"
-        uses: bitwarden/sm-action@v3.0.1
+        uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
         with:
           access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
           secrets: |
             ad184127-0d3f-4115-8801-b4e501565b66 > CACHIX_AUTH_TOKEN
 
     - name: "Install Nix"
-      uses: cachix/install-nix-action@v32.0.0
+      uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
       with:
         extra_nix_config: |
           keep-going = true
@@ -247,7 +247,7 @@ jobs:
 
     - name: "Set up Hestia"
       continue-on-error: true
-      uses: Mic92/hestia@v3.1.0
+      uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
       with:
         upstream-cache-filter: true
         upstream-cache-key-names: >
