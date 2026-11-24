@@ -203,8 +203,8 @@ jobs:
     timeout-minutes: 5
 
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # creating the PR branch
+      pull-requests: write # creating or updating the PR
 
     steps:
     - name: "Checkout repository"
