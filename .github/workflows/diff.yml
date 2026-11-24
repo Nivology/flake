@@ -196,7 +196,9 @@ jobs:
     - name: "Parse diff"
       id: parse
       working-directory: ./ci
-      run: nix eval --raw --file diff.nix > "${{ inputs.name }}.svg"
+      env:
+        NAME: ${{ inputs.name }}
+      run: nix eval --raw --file diff.nix > "${NAME}.svg"
 
     - name: "Upload diff JSON"
       if: always() && (steps.generate.outcome == 'failure' || steps.parse.outcome == 'failure')
