@@ -262,7 +262,7 @@ jobs:
         nix run nixpkgs#nix-fast-build --
         --skip-cached --push-build-closure
         --cachix-cache misterkartoffel
-        --flake .#${OUTPUT}.${SYSTEM}
+        --flake ".#${OUTPUT}.${SYSTEM}"
 
   sentinel:
     name: "No failures"
