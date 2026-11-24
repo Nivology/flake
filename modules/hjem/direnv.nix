@@ -14,10 +14,7 @@ in
         warn_timeout = "1m";
       };
 
-      whitelist.exact = map (project: "${config.directory}/Projects/${project}") [
-        "nix-config"
-        "nix-secrets"
-      ];
+      whitelist.prefix = [ "~/Projects" ];
     };
   };
 
