@@ -23,6 +23,7 @@ jobs:
       TACK_NIX_CONF_TOKENS: 1
 
     outputs:
+      changed: ${{ steps.check.outputs.changed }}
       summary: ${{ steps.summary.outputs.summary }}
 
     steps:
@@ -64,7 +65,17 @@ jobs:
         nix run nixpkgs#tack -- update
         nix run nixpkgs#tack -- init --resolver
 
+    - name: "Check for diffs"
+      id: check
+      run: |
+        if git diff --quiet; then
+          echo "changed=false" >> "${GITHUB_OUTPUT}"
+        else
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+        fi
+
     - name: "Upload changes"
+      if: steps.check.outputs.changed == 'true'
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: tack
@@ -73,6 +84,8 @@ jobs:
 
   matrix:
     name: "Discover hosts"
+    if: needs.update.outputs.changed == 'true'
+    needs: update
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
