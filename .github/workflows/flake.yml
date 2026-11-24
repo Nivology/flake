@@ -37,6 +37,8 @@ jobs:
     steps:
     - name: "Checkout repository"
       uses: actions/checkout@v7.0.1
+      with:
+        persist-credentials: false
 
     - name: "Filter paths"
       id: filter
@@ -78,6 +80,8 @@ jobs:
     - parallel:
       - name: "Checkout repository"
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: "Get secrets"
         uses: bitwarden/sm-action@v3.0.1
@@ -224,6 +228,8 @@ jobs:
     - parallel:
       - name: "Checkout repository"
         uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: "Get secrets"
         uses: bitwarden/sm-action@v3.0.1
