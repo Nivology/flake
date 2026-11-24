@@ -23,12 +23,13 @@ jobs:
       TACK_NIX_CONF_TOKENS: 1
 
     outputs:
+      changed: ${{ steps.check.outputs.changed }}
       summary: ${{ steps.summary.outputs.summary }}
 
     steps:
     - name: "Get secrets"
       id: secrets
-      uses: bitwarden/sm-action@v3.0.1
+      uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
       with:
         access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
         secrets: |
@@ -36,13 +37,14 @@ jobs:
 
     - parallel:
       - name: "Checkout tack directory"
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           sparse-checkout: |
             .tack
 
       - name: "Install Nix"
-        uses: cachix/install-nix-action@v32.0.0
+        uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
         with:
           github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
           extra_nix_config: |
@@ -63,8 +65,18 @@ jobs:
         nix run nixpkgs#tack -- update
         nix run nixpkgs#tack -- init --resolver
 
+    - name: "Check for diffs"
+      id: check
+      run: |
+        if git diff --quiet; then
+          echo "changed=false" >> "${GITHUB_OUTPUT}"
+        else
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+        fi
+
     - name: "Upload changes"
-      uses: actions/upload-artifact@v7
+      if: steps.check.outputs.changed == 'true'
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: tack
         path: .tack
@@ -72,11 +84,13 @@ jobs:
 
   matrix:
     name: "Discover hosts"
+    if: needs.update.outputs.changed == 'true'
+    needs: update
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     permissions:
-      actions: read
+      actions: read # detect evicted cache entries upfront
 
     outputs:
       hosts: ${{ steps.generate.outputs.hosts }}
@@ -85,17 +99,19 @@ jobs:
     - name: "Checkout repository"
       id: checkout
       background: true
-      uses: actions/checkout@v7.0.1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: "Get secrets"
-      uses: bitwarden/sm-action@v3.0.1
+      uses: bitwarden/sm-action@1238aae8fc64b212641190a9227c8a734ab1a793 # v3.0.1
       with:
         access_token: ${{ secrets.BWS_ACCESS_TOKEN }}
         secrets: |
           ec6c99d6-ceb6-4954-b487-b4e50156014e > NIVOLOGY_SECRETS_RO
 
     - name: "Install Nix"
-      uses: cachix/install-nix-action@v32.0.0
+      uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
       with:
         github_access_token: ${{ env.NIVOLOGY_SECRETS_RO }}
         extra_nix_config: |
@@ -103,7 +119,7 @@ jobs:
           cores = 0
 
     - name: "Set up Hestia"
-      uses: Mic92/hestia@v3.1.0
+      uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
       with:
         filter-drv-closures: true
         upstream-cache-filter: true
@@ -127,7 +143,7 @@ jobs:
     uses: $/.github/workflows/diff.yml
     needs: matrix
     permissions:
-      actions: read
+      actions: read # detect evicted cache entries upfront
     with:
       name: ${{ matrix.name }}
       drvPath: ${{ matrix.drvPath }}
@@ -148,9 +164,8 @@ jobs:
     timeout-minutes: 5
 
     permissions:
-      actions: read
-      id-token: write
-      pages: write
+      id-token: write # verifies the deployment originates from an appropriate source
+      pages: write # deploy to Pages
 
     environment:
       name: github-pages
@@ -161,21 +176,21 @@ jobs:
 
     steps:
     - name: "Download diffs"
-      uses: actions/download-artifact@v8.0.2
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
       with:
         pattern: diff-*
         path: _site/diffs/${{ github.run_id }}
         merge-multiple: true
 
     - name: "Set up Pages"
-      uses: actions/configure-pages@v6.0.0
+      uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
     - name: "Upload Pages artifact"
-      uses: actions/upload-pages-artifact@v5.0.0
+      uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
 
     - name: "Deploy to Pages"
       id: deploy
-      uses: actions/deploy-pages@v5.0.1
+      uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
   pull-request:
     name: "Create pull request"
@@ -188,15 +203,17 @@ jobs:
     timeout-minutes: 5
 
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # creating the PR branch
+      pull-requests: write # creating or updating the PR
 
     steps:
     - name: "Checkout repository"
-      uses: actions/checkout@v7.0.1
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: "Download changes"
-      uses: actions/download-artifact@v8.0.2
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
       with:
         name: tack
         path: .tack
@@ -210,7 +227,6 @@ jobs:
         HOSTS: ${{ needs.matrix.outputs.hosts }}
       run: |
         {
-          echo "TEXT<<EOF"
           echo "## Input update summary"
           echo '```text'
           echo "${SUMMARY}"
@@ -224,21 +240,72 @@ jobs:
             echo "![${NAME} closure diff](${PAGE_URL}diffs/${RUN_ID}/${NAME}.svg)"
             echo "</details>"
           done < <(jq -r '.[].name' <<< "${HOSTS}")
-
-          echo "EOF"
-        } >> "${GITHUB_OUTPUT}"
+        } > "${RUNNER_TEMP}/pr-body.md"
 
     - name: "Create pull request"
-      uses: peter-evans/create-pull-request@v8.1.3
-      with:
-        branch: tack/update-inputs
-        delete-branch: true
-        sign-commits: true
-        signoff: true
-        assignees: ${{ github.repository_owner }}
-        commit-message: "tack: update inputs"
-        title: "tack: update inputs"
-        body: ${{ steps.body.outputs.text }}
-        labels: |
-          CI/CD
-          inputs
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        BASE: ${{ github.ref_name }}
+        ASSIGNEE: ${{ github.repository_owner }}
+        TITLE: "tack: update-inputs"
+        BRANCH: tack/update-inputs
+      run: |
+        STATE=$(gh pr view "${BRANCH}" --json state --jq .state 2>/dev/null || true)
+
+        git add --all
+        BASE_SHA="$(git rev-parse HEAD)"
+        git push --force \
+          "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git" \
+          "${BASE_SHA}:refs/heads/${BRANCH}"
+
+        while IFS= read -r -d '' path; do
+          base64 --wrap=0 -- "${path}" \
+            | jq --raw-input --slurp --compact-output \
+              --arg path "${path}" '{path: $path, contents: .}'
+        done < <(git diff --cached --name-only --no-renames --diff-filter=d -z) \
+          | jq --slurp --compact-output '.' > "${RUNNER_TEMP}/additions.json"
+
+        while IFS= read -r -d '' path; do
+          jq --null-input --compact-output --arg path "${path}" '{path: $path}'
+        done < <(git diff --cached --name-only --no-renames --diff-filter=D -z) \
+          | jq --slurp --compact-output '.' > "${RUNNER_TEMP}/deletions.json"
+
+        jq --null-input \
+          --arg query 'mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }' \
+          --arg repo "${GH_REPO}" \
+          --arg branch "${BRANCH}" \
+          --arg oid "${BASE_SHA}" \
+          --arg headline "${TITLE}" \
+          --arg trailer "Signed-off-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>" \
+          --slurpfile additions "${RUNNER_TEMP}/additions.json" \
+          --slurpfile deletions "${RUNNER_TEMP}/deletions.json" \
+          '{
+            query: $query,
+            variables: {
+              input: {
+                branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                expectedHeadOid: $oid,
+                message: {headline: $headline, body: $trailer},
+                fileChanges: {additions: $additions[0], deletions: $deletions[0]}
+              }
+            }
+          }' > "${RUNNER_TEMP}/commit.json"
+
+        gh api graphql --input "${RUNNER_TEMP}/commit.json" --silent
+
+        if [[ "${STATE}" == OPEN ]]; then
+          gh pr edit "${BRANCH}" \
+            --title "${TITLE}" \
+            --body-file "${RUNNER_TEMP}/pr-body.md" \
+            --add-label "CI/CD" --add-label "inputs" \
+            --add-assignee "${ASSIGNEE}"
+        else
+          gh pr create \
+            --head "${BRANCH}" \
+            --base "${BASE}" \
+            --title "${TITLE}" \
+            --body-file "${RUNNER_TEMP}/pr-body.md" \
+            --label "CI/CD" --label "inputs" \
+            --assignee "${ASSIGNEE}"
+        fi

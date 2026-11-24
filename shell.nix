@@ -6,6 +6,7 @@
   nil,
   tack,
   yaml-language-server,
+  zizmor,
 
   # keep-sorted end
 }:
@@ -20,6 +21,7 @@ mkShellNoCC {
       nil
       tack
       yaml-language-server
+      zizmor
 
       # keep-sorted end
       ;

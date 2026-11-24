@@ -25,16 +25,17 @@ jobs:
     timeout-minutes: 30
 
     permissions:
-      actions: write
+      actions: write # needed for REST cache deletes
 
     steps:
     - name: "Install Nix"
-      uses: cachix/install-nix-action@v32.0.0
+      uses: cachix/install-nix-action@382a9ed9481c7c1f94f68b72ef105b3417c73877 # v32.1.0
 
     - name: "Set up Hestia"
-      uses: Mic92/hestia@v3.1.0
+      uses: Mic92/hestia@dfed9ced335d28978ba74e513939a10db1f71025 # v3.1.0
 
     - name: "Run garbage collection"
       env:
+        DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
         GITHUB_TOKEN: ${{ github.token }}
-      run: ${HESTIA_BIN} gc ${{ inputs.dry-run && '--dry-run' || '' }}
+      run: ${HESTIA_BIN} gc "${DRY_RUN}"
