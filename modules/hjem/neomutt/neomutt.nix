@@ -6,8 +6,9 @@ in
   packages = builtins.attrValues { inherit (pkgs) neomutt; };
 
   xdg.config.files."neomutt/neomuttrc".text = /* muttrc */ ''
-    account-hook outlook.office365.com "source account-hook/hotmail"
-    account-hook imap.ufrgs.br "source account-hook/ufrgs"
+    account-hook outlook.office365.com "set my_host = hotmail"
+    account-hook imap.ufrgs.br "set my_host = ufrgs"
+    account-hook . "source accounts/$my_host/account"
 
     named-mailboxes "Hotmail/Caixa de Entrada" "imaps://outlook.office365.com/Inbox"
     named-mailboxes "Hotmail/Arquivo Morto" "imaps://outlook.office365.com/Arquivo Morto"
@@ -22,10 +23,11 @@ in
     named-mailboxes "UFRGS/Enviados" "imaps://imap.ufrgs.br/Sent"
     named-mailboxes "UFRGS/Lixo Eletrônico" "imaps://imap.ufrgs.br/Spam"
 
-    folder-hook outlook.office365.com "source folder-hook/hotmail ; set my_host = hotmail"
-    folder-hook imap.ufrgs.br "source folder-hook/ufrgs ; set my_host = ufrgs"
+    folder-hook outlook.office365.com "set my_host = hotmail"
+    folder-hook imap.ufrgs.br "set my_host = ufrgs"
+    folder-hook . "source accounts/$my_host/folder"
 
-    send-hook ~P "source send-hook/$my_host"
+    send-hook ~P "source accounts/$my_host/send"
 
     set mailcap_path = "${xdg.config}/neomutt/mailcap"
 
