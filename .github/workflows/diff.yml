@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 30
 
     permissions:
-      actions: read
+      actions: read # detect evicted cache entries upfront
 
     steps:
     - name: "Get secrets"
@@ -90,7 +90,7 @@ jobs:
     timeout-minutes: 30
 
     permissions:
-      actions: read
+      actions: read # detect evicted cache entries upfront
 
     steps:
     - name: "Checkout repository"
