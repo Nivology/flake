@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 5
 
     permissions:
-      pull-requests: read
+      pull-requests: read # used by REST to fetch list of modified files
 
     outputs:
       flake: ${{ steps.filter.outputs.flake }}
@@ -121,9 +121,6 @@ jobs:
     if: needs.eval.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-
-    permissions:
-      security-events: write
 
     steps:
     - name: "Checkout .github"
