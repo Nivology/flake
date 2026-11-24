@@ -77,7 +77,7 @@ jobs:
     timeout-minutes: 10
 
     permissions:
-      actions: read
+      actions: read # detect evicted cache entries upfront
 
     outputs:
       hosts: ${{ steps.generate.outputs.hosts }}
@@ -130,7 +130,7 @@ jobs:
     uses: $/.github/workflows/diff.yml
     needs: matrix
     permissions:
-      actions: read
+      actions: read # detect evicted cache entries upfront
     with:
       name: ${{ matrix.name }}
       drvPath: ${{ matrix.drvPath }}
@@ -151,9 +151,8 @@ jobs:
     timeout-minutes: 5
 
     permissions:
-      actions: read
-      id-token: write
-      pages: write
+      id-token: write # verifies the deployment originates from an appropriate source
+      pages: write # deploy to Pages
 
     environment:
       name: github-pages
