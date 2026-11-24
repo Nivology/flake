@@ -255,11 +255,14 @@ jobs:
           misterkartoffel.cachix.org-1
 
     - name: "Build"
+      env:
+        OUTPUT: ${{ matrix.output }}
+        SYSTEM: ${{ matrix.system }}
       run: >
         nix run nixpkgs#nix-fast-build --
         --skip-cached --push-build-closure
         --cachix-cache misterkartoffel
-        --flake .#${{ matrix.output }}.${{ matrix.system }}
+        --flake .#${OUTPUT}.${SYSTEM}
 
   sentinel:
     name: "No failures"
