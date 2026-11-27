@@ -1,12 +1,12 @@
 {
-  self,
+  self',
   osConfig,
   pkgs,
   lib,
   ...
 }:
 let
-  inherit (self.packages.${pkgs.stdenv.hostPlatform.system}) zen-browser;
+  inherit (self'.packages) zen-browser;
   inherit (osConfig.programs) niri;
 in
 {

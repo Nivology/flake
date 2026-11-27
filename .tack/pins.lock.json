@@ -1,4 +1,12 @@
 {
+  "adios-flake": {
+    "type": "github",
+    "owner": "Mic92",
+    "repo": "adios-flake",
+    "rev": "8617ee1c4dd5bfad7a3ea5a3aec7cb0dbd82551d",
+    "narHash": "sha256-tPaJU3F4mshoSnp2x5ArlepBNBFniNNOugT7mWIIz5g=",
+    "lastModified": 1793308264
+  },
   "disko": {
     "type": "github",
     "owner": "nix-community",

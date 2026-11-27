@@ -1,5 +1,6 @@
 {
   inputs,
+  self',
   self,
   config,
   lib,
@@ -31,13 +32,12 @@ in
     };
 
   hjem.users = builtins.mapAttrs (username: _: {
-    imports = self.hjemModules.default ++ [
-      (self.outPath + "/users/${username}.nix")
-    ];
+    imports = [ (self.outPath + "/users/${username}.nix") ];
   }) users;
 
   hjem = {
-    specialArgs = { inherit self inputs; };
+    specialArgs = { inherit self'; };
+    extraModules = [ self.hjemModules.default ];
     clobberByDefault = true;
   };
 }

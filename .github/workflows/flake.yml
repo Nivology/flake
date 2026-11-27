@@ -107,7 +107,7 @@ jobs:
       run: |
         MATRIX=$(jq --null-input --compact-output \
           --argjson filters "${FILTERS}" --argjson force "${FORCE}" '
-          [ ("x86_64-linux", "aarch64-linux") as $system
+          [ ("x86_64-linux") as $system
           | ("devShells", "packages") as $output
           | select($force or $filters[$output] == "true")
           | {$output, $system} ]
@@ -149,7 +149,7 @@ jobs:
     name: "${{ matrix.name }} (${{ matrix.system }})"
     if: needs.matrices.outputs.hosts != '[]'
     needs: matrices
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
 
     permissions:
@@ -211,9 +211,7 @@ jobs:
     name: "${{ matrix.output }} (${{ matrix.system }})"
     if: needs.matrices.outputs.derivations != '[]'
     needs: matrices
-    runs-on: >-
-      ${{ matrix.system == 'x86_64-linux' && 'ubuntu-latest'
-      || matrix.system == 'aarch64-linux' && 'ubuntu-24.04-arm' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
 
     permissions:
