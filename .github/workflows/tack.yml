@@ -147,7 +147,6 @@ jobs:
     with:
       name: ${{ matrix.name }}
       drvPath: ${{ matrix.drvPath }}
-      runner: ${{ matrix.runner }}
     secrets:
       BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
     strategy:
