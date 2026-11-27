@@ -9,3 +9,6 @@ $env.XDG_CONFIG_HOME = ($env.XDG_CONFIG_HOME? | default ($env.HOME | path join "
 
 $env.EDITOR = "nvim"
 $env.W3M_DIR = ($env.XDG_STATE_HOME | path join "w3m")
+
+$env.SYSTEMD_TINT_BACKGROUND = false
+$env.SYSTEMD_ADJUST_TERMINAL_TITLE = false
