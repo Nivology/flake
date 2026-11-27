@@ -1,3 +1,3 @@
-{ self, ... }: {
-  nixpkgs.overlays = [ self.overlays.default ];
+{ self', ... }: {
+  nixpkgs.pkgs = self'.legacyPackages;
 }

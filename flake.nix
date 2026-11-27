@@ -5,61 +5,59 @@
       inputs = (import ./.tack) { overrides = args.tackOverrides or { }; };
       inherit (inputs.nixpkgs) lib;
 
-      importTree =
+      treeOf =
         path:
         lib.fileset.toList (
           lib.fileset.fileFilter (file: file.hasExt "nix" && !(lib.hasPrefix "_" file.name)) ./${path}
         );
+    in
+    inputs.adios-flake.lib.mkFlake {
+      inherit inputs self;
+      systems = [ "x86_64-linux" ];
 
-      forAllSystems =
-        apply:
-        lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (
-          system:
-          apply (
-            import inputs.nixpkgs {
-              inherit system;
-              overlays = [ self.overlays.default ];
+      flake = { withSystem, ... }: {
+        nixosConfigurations = builtins.mapAttrs (
+          hostname: _:
+          withSystem "x86_64-linux" (
+            { self', lib, ... }:
+            lib.nixosSystem {
+              specialArgs = { inherit inputs self'; };
+              modules = [ self.nixosModules.default ] ++ treeOf "hosts/${hostname}";
             }
           )
-        );
-    in
-    {
-      nixosConfigurations = builtins.mapAttrs (
-        hostname: _:
-        lib.nixosSystem {
-          modules = importTree "hosts/${hostname}" ++ self.nixosModules.default;
-          specialArgs = { inherit self inputs; };
-        }
-      ) (builtins.readDir ./hosts);
+        ) (builtins.readDir ./hosts);
 
-      nixosModules.default = importTree "modules/nixos";
-      hjemModules.default = importTree "modules/hjem";
+        nixosModules.default = {
+          _module.args = { inherit self; };
+          imports = treeOf "modules/nixos";
+        };
 
-      devShells = forAllSystems (pkgs: {
-        default = pkgs.callPackage ./shell.nix { };
-      });
+        hjemModules.default = {
+          imports = treeOf "modules/hjem";
+        };
 
-      packages = forAllSystems (
-        pkgs:
-        lib.packagesFromDirectoryRecursive {
-          callPackage = pkgs.newScope {
-            inherit (inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}) zen-browser-unwrapped;
+        overlays.default = lib.composeManyExtensions (map import (treeOf "overlays"));
+
+        templates = builtins.mapAttrs (language: _: {
+          path = ./templates/${language};
+          description = "A template for ${language}";
+        }) (builtins.readDir ./templates);
+      };
+      perSystem =
+        { inputs', pkgs, ... }:
+        let
+          pkgs' = pkgs.extend self.overlays.default;
+        in
+        {
+          legacyPackages = pkgs';
+
+          packages = lib.packagesFromDirectoryRecursive {
+            callPackage = pkgs'.newScope inputs'.zen-browser;
+            directory = ./pkgs;
           };
-          directory = ./pkgs;
-        }
-      );
 
-      formatter = forAllSystems (
-        pkgs: pkgs.treefmt.withConfig (import ./ci/treefmt.nix { inherit pkgs lib; })
-      );
-
-      templates = lib.genAttrs (builtins.attrNames (builtins.readDir ./templates)) (language: {
-        path = ./templates/${language};
-        description = "Template for ${language}";
-      });
-
-      overlays.default = lib.composeManyExtensions (
-        lib.mapAttrsToList (name: _: import ./overlays/${name}) (builtins.readDir ./overlays)
-      );
+          devShells.default = pkgs'.callPackage ./shell.nix { };
+          formatter = pkgs'.treefmt.withConfig (import ./ci/treefmt.nix { inherit pkgs lib; });
+        };
     };
 }

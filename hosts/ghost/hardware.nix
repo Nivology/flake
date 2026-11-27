@@ -20,6 +20,4 @@
     cpu.intel.updateMicrocode = true;
     firmware = builtins.attrValues { inherit (pkgs) linux-firmware wireless-regdb; };
   };
-
-  nixpkgs.hostPlatform = "x86_64-linux";
 }
