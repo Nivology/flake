@@ -38,4 +38,4 @@ jobs:
       env:
         DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
         GITHUB_TOKEN: ${{ github.token }}
-      run: ${HESTIA_BIN} gc "${DRY_RUN}"
+      run: ${HESTIA_BIN} gc ${DRY_RUN:+"${DRY_RUN}"}
